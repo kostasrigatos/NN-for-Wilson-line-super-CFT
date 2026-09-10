@@ -1,5 +1,4 @@
 import torch
-from torch.nn.parallel.comm import broadcast
 
 
 def hyper2f1(Delta: torch.Tensor, x: torch.Tensor, n_terms = 300) -> torch.Tensor:
@@ -9,6 +8,9 @@ def hyper2f1(Delta: torch.Tensor, x: torch.Tensor, n_terms = 300) -> torch.Tenso
          Parameters
          ----------
          Delta, x: torch.Tensor both
+            Delta: Even integer scaling dimension label (free-theory / weak-coupling
+            convention -- see module docstring).
+            x: Conformal cross-ratio; x = \frac{x_{12}x_{34}}{x_{13}x_{24}}.
 
          Returns
          -------
@@ -36,12 +38,15 @@ def hyper2f1(Delta: torch.Tensor, x: torch.Tensor, n_terms = 300) -> torch.Tenso
     return total
 
 def f_delta(Delta: torch.Tensor, x: torch.Tensor, eps: float = 1e-7) -> torch.Tensor:
-    """
+    r"""
         The superconformal blocks f_{Δ}(g).
 
         Parameters
         ----------
         Delta, x: torch.Tensor both
+            Delta: Even integer scaling dimension label (free-theory / weak-coupling
+            convention -- see module docstring).
+        x: Conformal cross-ratio; x = \frac{x_{12}x_{34}}{x_{13}x_{24}}.
 
         Returns
         -------
@@ -62,12 +67,15 @@ def f_delta(Delta: torch.Tensor, x: torch.Tensor, eps: float = 1e-7) -> torch.Te
     return block_expr
 
 def F_delta(Delta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
-    """
+    r"""
         The crossed superconformal blocks F_{Δ}(g).
 
         Parameters
         ----------
         Delta, x: torch.Tensor both
+            Delta: Even integer scaling dimension label (free-theory / weak-coupling
+            convention -- see module docstring).
+        x: Conformal cross-ratio; x = \frac{x_{12}x_{34}}{x_{13}x_{24}}.
 
         Returns
         -------

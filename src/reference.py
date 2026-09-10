@@ -21,7 +21,7 @@ Do not mix numeric-order labels and J-labels without translating.
 from scipy import special
 
 def j_squared(Delta: int) -> int:
-    """
+    r"""
         Casimir eigenvalue for operators with in the representation ω = {∆, 0, [0, 0]} of osp(4^{*}|4).
 
         Parameters
@@ -43,7 +43,7 @@ def j_squared(Delta: int) -> int:
     return j_sq_expr
 
 def harmonic_number(n: int, m: int) -> float:
-    """
+    r"""
         Definition of harmonic number H^{(m)}_{n}
 
         Parameters
@@ -65,7 +65,7 @@ def harmonic_number(n: int, m: int) -> float:
     return total_sum
 
 def anal_continuation_harmonic_number(n: float) -> float:
-    """
+    r"""
         Definition of harmonic number H^{(2)}_{n}
 
         Parameters
@@ -85,7 +85,7 @@ def anal_continuation_harmonic_number(n: float) -> float:
     return h2_n
 
 def s_minus_2_sum(Delta: int) -> float:
-    """
+    r"""
         Alternating harmonic sum S_{-2}(Δ), integer args.
 
         Parameters
@@ -108,7 +108,7 @@ def s_minus_2_sum(Delta: int) -> float:
     return total_sum
 
 def s_minus_2(Delta: int) -> float:
-    """
+    r"""
         Alternating harmonic sum S_{-2}(Δ), continued to half-integer args.
 
         Parameters
@@ -140,7 +140,7 @@ def s_minus_2(Delta: int) -> float:
     return s_minus_2_expr
 
 def gamma1(Delta: int) -> float:
-    """
+    r"""
         Tree-level anomalous dimension <γ^{(1)}_{Delta}>.
 
         Parameters
@@ -162,7 +162,7 @@ def gamma1(Delta: int) -> float:
     return gamma1_expr
 
 def gamma2(Delta: int) -> float:
-    """
+    r"""
         One-loop anomalous dimension <γ^{(2)}_Δ>.
 
         Parameters
@@ -186,7 +186,7 @@ def gamma2(Delta: int) -> float:
     return gamma2_expr
 
 def gamma3(Delta: int) -> float:
-    """
+    r"""
         Two-loop anomalous dimension <γ^{(3)}_Δ>.
 
         Parameters

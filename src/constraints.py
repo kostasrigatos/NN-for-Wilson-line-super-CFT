@@ -22,14 +22,50 @@ combined_weights1 = _term1 * _term2 * weights
 combined_weights2 = _term3 * weights
 
 def int1(Delta: torch.Tensor) -> torch.Tensor:
+    r"""
+        The integral operators of Constraint 1 involving the Bremsstrahlung and Curvature functions.
 
+        Parameters
+        ----------
+        Delta: torch.Tensor
+            Even integer scaling dimension label (free-theory / weak-coupling
+            convention -- see module docstring).
+
+        Returns
+        -------
+        torch.Tensor
+           Int_1[F(x)] = \int^{1/2}_0 (x-1-x^2) \frac{F(x)}{x^2} \partial_x log(x(1 - x)) dx.
+
+        Notes
+        -----
+        Cavaglià–Gromov–Julius–Preti (2203.09556), eq. (4.34), page 27.
+        We have used: \partial_x log(x(1 - x)) = 1/x - 1/(1-x) = (1-2x)/(x(1-x)) --- see _term2 above.
+    """
     f_evaluated = f_delta(Delta, nodes)
     weighted_sum = torch.sum(-f_evaluated * combined_weights1, dim = -1)
 
     return weighted_sum
 
 def int2(Delta: torch.Tensor) -> torch.Tensor:
+    r"""
+        The integral operators of Constraint 2 involving the Bremsstrahlung and Curvature functions.
 
+        Parameters
+        ----------
+        Delta: torch.Tensor
+            Even integer scaling dimension label (free-theory / weak-coupling
+            convention -- see module docstring).
+
+        Returns
+        -------
+        torch.Tensor
+           Int_2[F(x)] = \int^{1/2}_0 (2x-1) \frac{F(x)}{x^2}.
+
+        Notes
+        -----
+        Cavaglià–Gromov–Julius–Preti (2203.09556), eq. (4.35), page 27.
+        We have used: \partial_x log(x(1 - x)) = 1/x - 1/(1-x) = (1-2x)/(x(1-x)).
+    """
     f_evaluated = f_delta(Delta, nodes)
     weighted_sum = torch.sum(f_evaluated * combined_weights2, dim = -1)
 

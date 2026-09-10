@@ -7,12 +7,13 @@ G_MIN = 3  # curvature_C's eq.(2.14) truncation: all 5 consecutive-term
            # This means u_max = 0.026 and λ_min = 1422
 
 def B_function(g: float) -> float:
-    """
+    r"""
         The Bremsstrahlung function B(g).
 
         Parameters
         ----------
-        g
+        g: float
+            The coupling constant.
 
         Returns
         -------
@@ -29,12 +30,13 @@ def B_function(g: float) -> float:
     return B_function_expr
 
 def F_function(g: float) -> float:
-    """
+    r"""
         The constant F(g).
 
         Parameters
         ----------
-        g
+        g: float
+            The coupling constant.
 
         Returns
         -------
@@ -53,12 +55,13 @@ def F_function(g: float) -> float:
     return F_function_expr
 
 def F_function_cross_check(g: float) -> float:
-    """
+    r"""
         The constant F(g).
 
         Parameters
         ----------
-        g
+        g: float
+            The coupling constant.
 
         Returns
         -------
@@ -74,12 +77,13 @@ def F_function_cross_check(g: float) -> float:
     return F_function_cross_check_expr
 
 def curvature_C(g: float) -> float:
-    """
+    r"""
         The  perturbative expansion of the curvature function, C(g) at strong coupling truncated at O(1/g^4).
 
         Parameters
         ----------
-        g
+        g: float
+            The coupling constant.
 
         Returns
         -------
@@ -102,12 +106,13 @@ def curvature_C(g: float) -> float:
     return curvature_C_expr
 
 def RHS1(g: float) -> float:
-    """
+    r"""
         Explicit function of the coupling constant.
 
         Parameters
         ----------
-        g
+        g: float
+            The coupling constant.
 
         Returns
         -------
@@ -124,12 +129,13 @@ def RHS1(g: float) -> float:
     return right_hand_expression
 
 def RHS2(g: float) -> float:
-    """
+    r"""
         Explicit function of the coupling constant.
 
         Parameters
         ----------
-        g
+        g: float
+            The coupling constant.
 
         Returns
         -------
