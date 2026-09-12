@@ -46,4 +46,5 @@ def spectrum_at_g(g: float) -> list[float]:
     return delta_values
 
 if __name__ == "__main__":
-    print(spectrum_at_g(available_g_values[50]))
+    print(spectrum_at_g(available_g_values[100]))
+    print(available_g_values[100])

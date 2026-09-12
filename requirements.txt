@@ -4,3 +4,4 @@ mpmath
 torch
 pytest
 pandas
+cvxpy
