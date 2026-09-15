@@ -38,13 +38,13 @@ def spectrum_at_g(g: float) -> list[float]:
         1) A value for the coupling, g, that does not exist.
         2) A coupling, g, that exists but has the wrong row-count.
     """
-    filter = df[np.isclose(df['g'], g)]
-    if len(filter) != 10:
-        raise ValueError(f"g = {g} does not have exactly 10 states in the data; found {len(filter)} instead.")
-    sorted_rows = filter.sort_values('n_value')
+    filtered = df[np.isclose(df['g'], g)]
+    if len(filtered) != 10:
+        raise ValueError(f"g = {g} does not have exactly 10 states in the data; found {len(filtered)} instead.")
+    sorted_rows = filtered.sort_values('n_value')
     delta_values = sorted_rows['Delta'].tolist()
     return delta_values
 
 if __name__ == "__main__":
     print(spectrum_at_g(available_g_values[100]))
-    print(available_g_values[100])
+    print(available_g_values[1])

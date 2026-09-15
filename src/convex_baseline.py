@@ -88,4 +88,3 @@ def reconstruct_C_squared(theta: np.ndarray, g: float, knots: np.ndarray, degree
     c_squared_values = theta @ basis_row
     return c_squared_values
 
-
