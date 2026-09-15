@@ -3,7 +3,25 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class WilsonNetwork(nn.Module):
+    r"""
+         A 4-layer neural network for parameter-dependent predictions.
 
+         Parameters
+         ----------
+         hidden_dim: int
+            The number of hidden units inside each of the fully connected hidden layers.
+
+         Attributes
+         ----------
+         layer1: nn.Linear
+             The input layer of the network projecting from 1 feature to hidden_dim features.
+         layer2: nn.Linear
+              The first hidden layer of the network projecting from hidden_dim features to hidden_dim features.
+         layer3: nn.Linear
+               The second hidden layer of the network projecting from hidden_dim features to hidden_dim features.
+         layer4: nn.Linear
+               The output layer of the network projecting from hidden_dim features to 10 outputs.
+     """
     def __init__(self, hidden_dim = 64):
         super().__init__()
 
@@ -12,7 +30,21 @@ class WilsonNetwork(nn.Module):
         self.layer3 = nn.Linear(hidden_dim, hidden_dim)
         self.layer4 = nn.Linear(hidden_dim, 10)
 
-    def forward(self, g):
+    def forward(self, g: torch.Tensor) -> torch.Tensor:
+        r"""
+             Executes the forward pass of the neural network.
+
+             Parameters
+             ----------
+             g: torch.Tensor
+                A tensor of shape (batch_size, 1) that represents the input parameter; the coupling constant.
+
+             Returns
+             -------
+             torch.Tensor
+               A tensor of shape (batch_size, 10) that contains the output of the neural network; the non-negative predicted
+               values across the 10 elements.
+         """
         x = torch.tanh(self.layer1(g))
         x = torch.tanh(self.layer2(x))
         x = torch.tanh(self.layer3(x))

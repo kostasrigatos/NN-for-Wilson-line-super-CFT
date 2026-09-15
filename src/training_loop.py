@@ -4,8 +4,29 @@ from pinn_model import WilsonNetwork
 from spectrum_data import available_g_values
 from pathlib import Path
 
-def train_and_save(lam, g_values, design_matrix_cache, target_vector_cache, n_epochs = 30000):
+def train_and_save(lam: float, g_values: list[float], design_matrix_cache: dict[float, torch.Tensor], target_vector_cache: dict[float, torch.Tensor], n_epochs: int = 30000) -> None:
+    r"""
+         Trains the WilsonNetwork model for a given number of epochs, using the physics-informed crossing loss optionally
+         regularised by a second-order derivative smoothness penalty and saves the resulting trained weights to disk.
 
+         Parameters
+         ----------
+         lam: float
+            The hyperparameter for the second-order derivative smoothness penalty. If set t. 0.0, the regularised penalty
+            evaluation is circumvented.
+         g_values: list[float]
+            A list of values of the coupling constant, g, where the matrices of the system are evaluated.
+         design_matrix_cache: dict[float, torch.Tensor]
+            A dictionary mapping each value of the coupling constant, g, to its 2D design matrix.
+         target_vector_cache: dict[float, torch.Tensor]
+            A dictionary mapping each value of the coupling constant, g, to its 1D target vector.
+         n_epochs: int
+             The number of epochs to train for.
+
+         Returns
+         -------
+         None
+     """
     torch.manual_seed(42)
     model = WilsonNetwork().double()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
