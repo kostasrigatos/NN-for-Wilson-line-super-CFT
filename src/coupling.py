@@ -152,3 +152,7 @@ def RHS2(g: float) -> float:
     right_hand_expression = term1 + term2 + term3
     return right_hand_expression
 
+if __name__ == "__main__":
+    print(f"For g = 3.0, the RHS1 is equal to {RHS1(3.0):.5f} and the RHS2 is equal to {RHS2(3.0):.5f}")
+    print(f"For g = 3.5, the RHS1 is equal to {RHS1(3.5):.5f} and the RHS2 is equal to {RHS2(3.5):.5f}")
+    print(f"For g = 4.0, the RHS1 is equal to {RHS1(4.0):.5f} and the RHS2 is equal to {RHS2(4.0):.5f}")
