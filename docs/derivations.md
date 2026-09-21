@@ -86,8 +86,8 @@ so that, with no approximation yet,
 
 $$
 \begin{aligned}
-\operatorname{Re}(u) &= g\left(\frac{\varepsilon^2 + 2\varepsilon + 2}{1+\varepsilon}\right)\cos\phi \\
-\operatorname{Im}(u) &= g\left(\frac{\varepsilon(\varepsilon+2)}{1+\varepsilon}\right)\sin\phi
+\text{Re}(u) &= g\left(\frac{\varepsilon^2 + 2\varepsilon + 2}{1+\varepsilon}\right)\cos\phi \\
+\text{Im}(u) &= g\left(\frac{\varepsilon(\varepsilon+2)}{1+\varepsilon}\right)\sin\phi
 \end{aligned}
 $$
 
@@ -109,7 +109,7 @@ $\mathcal{O}(\varepsilon^2)$ statements then follow immediately.)
 Hence
 
 $$
-\operatorname{Re}(u) \approx 2g\cos\phi, \qquad \operatorname{Im}(u) \approx 2g\varepsilon\sin\phi .
+\text{Re}(u) \approx 2g\cos\phi, \qquad \text{Im}(u) \approx 2g\varepsilon\sin\phi .
 $$
 
 ### 1.4 Geometric picture: the contour is an ellipse
@@ -117,7 +117,7 @@ $$
 Squaring and adding, using $\cos^2\phi + \sin^2\phi = 1$:
 
 $$
-\frac{\operatorname{Re}(u)^2}{(2g)^2} + \frac{\operatorname{Im}(u)^2}{(2g\varepsilon)^2} = 1
+\frac{\text{Re}(u)^2}{(2g)^2} + \frac{\text{Im}(u)^2}{(2g\varepsilon)^2} = 1
 $$
 
 At finite $\varepsilon$ the image of the circle $|x| = 1+\varepsilon$ is a genuine
@@ -125,7 +125,7 @@ closed **ellipse** in the $u$-plane, with semi-axes $2g$ and $2g\varepsilon$.
 As $\varepsilon \to 0^+$ it collapses onto the slit:
 
 $$
-u \in [-2g, 2g], \qquad \operatorname{Im}(u) = 0 .
+u \in [-2g, 2g], \qquad \text{Im}(u) = 0 .
 $$
 
 This is what justifies replacing "a contour encircling the cut" by "the unit
@@ -133,8 +133,8 @@ circle in $x$": the two are related by a continuous deformation through a
 region where the integrand is analytic.
 
 > **Do not discard $\varepsilon$ too early.** The statement
-> $\operatorname{Im}(u) = 0$ is correct in the limit, but the *sign* of
-> $\operatorname{Im}(u) \approx 2g\varepsilon\sin\phi$ is what identifies which
+> $\text{Im}(u) = 0$ is correct in the limit, but the *sign* of
+> $\text{Im}(u) \approx 2g\varepsilon\sin\phi$ is what identifies which
 > side of the cut you are on. That information is needed in §2 and is lost
 > if you set $\varepsilon = 0$ at this stage.
 
@@ -378,7 +378,7 @@ digamma function is real-analytic, so $\psi(\bar z) = \overline{\psi(z)}$,
 and therefore
 
 $$
-\psi(1+iu) + \psi(1-iu) = 2\operatorname{Re}\psi(1+iu) \in \mathbb{R}
+\psi(1+iu) + \psi(1-iu) = 2\text{Re}\psi(1+iu) \in \mathbb{R}
 $$
 
 Hence $K_0(u)$ is **purely imaginary** for real $u$. Any non-zero real part
