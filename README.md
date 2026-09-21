@@ -518,7 +518,7 @@ means re-running the sweep, which is exact and deterministic given the
 same seeds, but does take the original training time. The resulting
 summary statistics (violation score, final loss, plateau epoch and
 magnitude, for every (λ, seed) pair) are saved to
-`models/seed_sweep_summary.csv`.
+`models/summaries_seed_sweep_parallel.csv`.
 
 ## Data provenance
 
