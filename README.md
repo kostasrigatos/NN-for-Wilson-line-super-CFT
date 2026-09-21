@@ -116,21 +116,36 @@ no other bias is free to exploit that slack rather than resolve it.
 
 An explicit smoothness penalty — the network output's second derivative
 with respect to g, computed via automatic differentiation — was added at
-four weights: `λ ∈ {0, 0.001, 0.01, 0.1}`.
+four weights: `λ ∈ {0, 0.001, 0.01, 0.1}`. Each was trained across 5
+random seeds (0–4) to check whether the ranking found initially held up
+under genuinely different initializations, not just different `λ`.
 
-| λ | violation score |
+| λ | violation score (mean ± std) |
 |---|---|
-| 0 | 2.751 |
-| 0.001 | 3.204 |
-| 0.01 | 3.564 |
-| 0.1 | 3.986 |
+| 0 | 2.763 ± 0.061 |
+| 0.001 | 3.152 ± 0.065 |
+| 0.01 | 3.580 ± 0.203 |
+| 0.1 | 3.961 ± 0.105 |
 
-**The result is strictly monotonic: every increase in `λ` makes the fit
-worse, with no exceptions.** This differs in character from the convex
-baseline's result, which had a genuine interior optimum found two
-independent ways. Here, the best configuration found across every PINN
-experiment has no smoothness term at all — and even that configuration
-remains roughly 5x worse than the convex baseline's best result.
+**The monotonic trend survives seed variation, with one honest nuance at
+the top end.** For `λ=0 → 0.001 → 0.01`, every seed at one weight beats
+every seed at the next — the full min-max ranges never overlap, not just
+the means. Between `λ=0.01` and `λ=0.1`, the means stay cleanly ordered
+and the ±1 std bands still don't overlap, but one `λ=0.01` seed (3.887)
+edges past the lowest `λ=0.1` seed (3.821) — the trend holds on average,
+without every single seed beating every single seed at the boundary. As
+before, the best configuration across every PINN experiment has no
+smoothness term at all, and even that configuration remains roughly 5x
+worse than the convex baseline's best result.
+
+Separately, locating the loss plateau's escape epoch automatically —
+across all 20 runs, using a windowed-average detector robust to late-
+training instability — placed it at `17130`–`20603` regardless of `λ`,
+consistent with the single-seed observation above. One seed (of five)
+showed the escape landing within 200 epochs of the same point across all
+four `λ` values, suggesting the timing is substantially set by the
+initialization itself — though this held for only one of the five seeds
+tested, not universally.
 
 ### Honest limitations
 
@@ -140,6 +155,10 @@ remains roughly 5x worse than the convex baseline's best result.
   differences), so the precise claim is that *this specific* smoothness
   mechanism did not help this network, not a general claim about
   smoothness across representations.
+- Five seeds is enough to confirm the trend is not a single-initialization
+  artifact, but not enough to bound the variance precisely — a claim
+  about, say, the 95th-percentile violation score at each `λ` would need
+  more.
 
 ## Comparison to MultiSTOP
 
@@ -373,6 +392,64 @@ coarse one found (`3.6%` → `3.18%` worst-case deviation) was the check
 that the result was a genuine local optimum rather than an artifact of
 where the first grid happened to sample.
 
+## Seed-Robustness Infrastructure
+
+**Parallelization.** Five seeds across four `λ` values means 20 independent
+training runs. Since each is fully independent — nothing about seed `k`'s
+training depends on seed `k-1`'s — they parallelize trivially across CPU
+cores via `concurrent.futures.ProcessPoolExecutor`, rather than running
+sequentially. Two things matter for getting this right on a CPU-only
+PyTorch workload specifically:
+
+- **Thread oversubscription.** PyTorch's CPU backend uses a multi-threaded
+  linear algebra library internally by default. Spawning `N` worker
+  processes that each *also* try to use every available thread creates
+  severe contention — more threads competing than physical cores exist.
+  Each worker calls `torch.set_num_threads(1)` immediately on start,
+  making parallelism come entirely from process-level concurrency rather
+  than fighting itself internally.
+- **Per-worker cache rebuilding.** The physics cache (design matrices,
+  target vectors) is a large object; passing it from the main process to
+  every worker means serializing it repeatedly across process boundaries.
+  Since building it costs seconds while training costs minutes, each
+  worker rebuilds its own cache independently — trading a small amount of
+  redundant, fully-parallel computation for much simpler code with no
+  cross-process data sharing.
+
+Measured on a 10-core machine: genuine contention under full 10-way
+concurrency costs a real but modest `~1.7×` slowdown on both cache-building
+and training, relative to running two jobs at a time. The full 20-job sweep
+completed in under 10 minutes, against a naive linear extrapolation that
+would have suggested several times that.
+
+**Detecting the loss plateau's escape point reliably.** Training curves
+show a long flat plateau followed by a sharp drop (see Part 1). Locating
+that transition automatically, across 20 runs, turned out to need real
+care. A first attempt — searching for the single largest one-epoch
+relative decrease in the loss — was misled by late-training instability:
+intermittent loss spikes (visible directly in the training logs), followed
+by a one-epoch recovery back down, register as an even larger relative
+drop than the genuine plateau-escape itself. The detected "escape" epoch
+clustered suspiciously close to whatever boundary the search window
+happened to end at, rather than settling at a consistent point — the
+signature of a metric tracking search-window artifacts rather than a real
+structural feature.
+
+The fix compares windowed averages rather than single epochs — the mean
+loss over `W` epochs before a candidate point against the mean over `W`
+epochs after it — so a transient spike lasting a few epochs gets diluted
+across the window, while a genuine, sustained regime change survives
+intact. Verified on a synthetic loss curve containing both a real
+transition and an injected spike deliberately made larger than the
+transition itself: the windowed metric correctly recovered the genuine
+transition where the single-epoch version, as expected, picked the spike.
+A window of 50 epochs, sufficient in that synthetic test, still clustered
+near the search boundary on the real data — the late-training instability
+here evidently spans longer than a brief spike. `W=500` resolved it
+completely: detected escape epochs spread naturally across
+`17130`–`20603`, closely matching an earlier single-seed observation of
+`~13000`–`19000`, with none clustering near either search boundary.
+
 
 ## PINN Architecture and Training
 
@@ -409,11 +486,14 @@ network's weights possible.
 
 **Training dynamics.** Across every training run (pure crossing-loss and
 each smoothness weight), loss curves showed the same qualitative pattern:
-a long, nearly-flat stretch around epoch 13000-19000, followed by a sharp,
-sudden drop over a few hundred epochs, then continued gradual improvement.
-This recurred independently across differently-seeded and differently-
-regularized runs, suggesting it reflects a genuine feature of the
-optimization landscape rather than a coincidence of one particular run.
+a long, nearly-flat stretch, followed by a sharp, sudden drop over a few
+hundred epochs, then continued gradual improvement. Observed initially
+under a single fixed seed at roughly epoch 13000-19000, the multi-seed
+study in Part 1 confirmed this is not an artifact of that one
+initialization: across 20 runs (4 λ values × 5 seeds), the automatically-
+detected escape point clustered at `17130`–`20603` regardless of λ — see
+"Smoothness-regularized loss" above, and "Seed-Robustness Infrastructure"
+below for how that escape point was detected reliably.
 Later in training, loss showed intermittent spikes of increasing severity
 — a signature of the fixed learning rate (`1e-3` throughout, via Adam)
 no longer being well-matched to the sharper local landscape near
@@ -428,10 +508,17 @@ exact reproducibility of every result in this project. The only source of
 randomness anywhere in the training pipeline is PyTorch's own weight
 initialization; the physics computations (`build_design_matrix`,
 `build_target_vector`) are fully deterministic given a fixed g, and no
-`numpy`-based randomness is used anywhere in the training code. Trained
-weights for each λ configuration are saved to
-`models/trained_model_lam_{λ}.pt`, allowing exact reproduction of the
-Part 1 comparison table without retraining.
+`numpy`-based randomness is used anywhere in the training code.
+
+The original single-seed λ sweep's trained weights are saved to
+`models/trained_model_lam_{λ}.pt`, allowing exact reproduction of that
+result without retraining. The multi-seed table's 20 runs were not saved
+as checkpoints by design (`save=False` throughout) — reproducing them
+means re-running the sweep, which is exact and deterministic given the
+same seeds, but does take the original training time. The resulting
+summary statistics (violation score, final loss, plateau epoch and
+magnitude, for every (λ, seed) pair) are saved to
+`models/seed_sweep_summary.csv`.
 
 ## Data provenance
 
