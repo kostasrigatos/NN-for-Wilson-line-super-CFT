@@ -7,9 +7,12 @@ and the reinforcement-learning approach of BootSTOP/MultiSTOP.
 
 **Status:** Completed: special functions, coupling functions, conformal
 blocks, integral-constraint module, strong-coupling reference data, convex
-baselines, PINN investigation (spectrum given). Not yet attempted: folding
-the integral constraints (`src/constraints.py`) into either the convex or
-PINN fit — see "What this motivates" below.
+baselines, PINN investigation (spectrum given), convex baseline extended
+with integral constraints. Not yet attempted: the exact (coupling-
+independent) Curvature function from eq. (2.12) — derived and verified
+in `docs/derivations.md`, not yet implemented numerically — and folding
+the integral constraints into the PINN fit — see "What this motivated"
+below.
 
 This README has two parts. Part 1 explains the physics motivation and
 findings, for readers coming from the bootstrap/hep-th side. Part 2
@@ -157,7 +160,7 @@ value of this result is convergent evidence, from a third and fourth
 independent method, that the limitation is structural to plain crossing
 symmetry rather than an artifact of any one optimization approach.
 
-## What This Motivates
+## What This Motivated
 
 The rigorous analytic/numerical bootstrap bounds used as ground truth
 throughout this project (`data/ope_bounds_strong_coupling.csv`, from
@@ -168,8 +171,117 @@ have used. `src/constraints.py`'s `int1`/`int2` — the integral constraints
 from the same bootstrappability framework, built and independently tested
 since early in this project but never yet incorporated into a fit — are
 linear in `C_n²`, so they could be added to the convex system without
-sacrificing convexity, or as an additional loss term for the PINN. This is
-the natural, concretely motivated next step, though not yet attempted.
+sacrificing convexity, or as an additional loss term for the PINN. Folding
+them into the convex baseline is now done — see "Integral Constraints
+Extension" below — and resolves the degeneracy to within ~3%. The PINN
+extension has not yet been attempted.
+
+## Integral Constraints Extension
+
+**Status: complete for the convex baseline.** This tests the concrete next
+step flagged earlier — whether the two integral constraints from the same
+bootstrappability framework, linear in `C_n²` and therefore foldable
+directly into the existing convex QP, actually resolve the C₂²/C₃²
+degeneracy that smoothness alone could not.
+
+### Background
+
+Neither the convex baseline nor the PINN, using only the crossing equation
+plus smoothness regularization, could resolve the near-degenerate pair —
+confirmed independently by both methods, and matching a limitation
+MultiSTOP's own authors documented. The rigorous bootstrap succeeds where
+these fail specifically because it combines crossing with *integrability*.
+`src/constraints.py`'s `int1`/`int2` — eqs. (4.32)/(4.33) of
+Cavaglià–Gromov–Julius–Preti, built and tested since early in this project
+but never incorporated into a fit — are exactly that kind of additional,
+integrability-derived information: two more linear constraints on `C_n²`,
+with right-hand sides (`RHS1`/`RHS2` in `src/coupling.py`) built from the
+Bremsstrahlung and Curvature functions.
+
+One real restriction going in: `RHS1`/`RHS2` depend on `curvature_C`'s
+strong-coupling asymptotic series, valid only for `g >= G_MIN = 3` — the
+opposite end of the coupling range from where the degeneracy is worst.
+Whether information from that region could still help at small g, through
+the shared spline basis, was an open question rather than an assumption.
+
+### Method
+
+Two additional weighted terms enter the same convex objective:
+
+```
+minimize   ‖A_cross θ − b_cross‖²  +  w_int ‖A_int θ − b_int‖²  +  λ ‖D θᵀ‖²
+subject to θ ≥ 0
+```
+
+Built as a separate module family (`src/integral_constraints.py`,
+`src/convex_baseline_with_integrals.py`, `src/violation_analysis.py`,
+`src/integral_bounds_sweep.py`) rather than modifying the tested Stage 0.5
+code, following the same discipline as `solve_from_cached` earlier in the
+project. `w_int = 0` was verified to exactly reproduce the original convex
+baseline's objective value, confirming the extension is a strict
+generalization.
+
+Evaluation moved from the single aggregate `violation_score` to a
+per-state, per-coupling breakdown (`violation_by_state`) plus a direct
+fitted-to-true ratio at a probe coupling (`ratio_to_truth`) — the aggregate
+metric was found, empirically, to hide exactly the signal that mattered:
+it stayed flat across a wide range of `w_int` while the individual C₂²/C₃²
+ratios moved from over-estimating to under-estimating the true value
+across that same range, crossing through the correct answer in between.
+
+`λ` and `w_int` were searched jointly, not separately, since adding a third
+term to the objective gives no reason to assume the pre-integral-constraint
+optimal `λ` still applies. A coarse log-spaced grid was followed by a
+second, finer grid centered on the coarse optimum, to confirm the result
+was a genuine local optimum rather than an artifact of grid resolution.
+
+### Result
+
+**At `λ ≈ 0.001`, `w_int ≈ 4×10⁶`, both C₂² and C₃² land within ~3% of
+their known bootstrap values simultaneously** — down from `3.97×` and
+`0.47×` respectively with no integral constraints at all. The refined grid
+search converged to the same neighborhood the coarse grid found
+(`3.6%` → `3.18%` worst-case deviation), confirming a real local optimum.
+
+Two further findings from the sweep, both suggesting a genuine, non-trivial
+interaction rather than a single well-placed hyperparameter:
+
+- **`λ = 0` is numerically unstable** — the fit jumps erratically between
+  distinct configurations depending on solver initialization, rather than
+  converging cleanly. Neither smoothness nor the integral constraints
+  suffice alone; the combination is what makes the problem well-posed.
+- **`λ = 1.0` is essentially unresponsive to the integral constraints** —
+  C₂² stays above `3.9×` across the entire `w_int` range,
+  barely moving even at `w_int = 10⁸`, where it finally drops to `3.98×`; still nowhere the real value.
+  Too much smoothness weight locks the fit into a configuration the integral term can't meaningfully shift.
+
+Information also propagates *backward* in coupling through the shared
+spline basis: the constraints are imposed only at `g ≥ 3`, yet the largest
+improvements land at `g ≈ 2.0–2.5`, outside the constrained region,
+decaying to negligible effect below `g ≈ 0.5`.
+
+### Honest limitations
+
+- **The `g ≥ G_MIN` restriction is still real.** The exact, coupling-
+  independent expression for the Curvature function (eq. 2.12, a double
+  contour integral) has been fully derived and verified analytically —
+  see `docs/derivations.md` — but not yet implemented numerically. Until
+  it is, the constraints cannot be imposed anywhere near where the
+  degeneracy is actually worst; the current result works entirely through
+  the spline basis's propagation of information from `g ≥ 3` downward.
+- **`w_int` selection is informed by the same ground truth used to
+  evaluate it** — the same caveat as the original `λ` sweep. It is
+  meaningfully weaker here, though: `w_int` showed a wide plateau of
+  near-equally-good values above `~10⁶`, rather than a sharp, delicately-
+  tuned peak, so the result is not sensitive to precisely which value in
+  that range was chosen.
+- **Only the convex baseline has been extended this way.** Whether adding
+  the integral constraints as an additional PINN loss term succeeds where
+  the smoothness-penalty experiment failed — plausible, given the
+  reward-shaping difficulty MultiSTOP reported when combining objectives
+  in an RL framework, versus straightforward loss addition in a
+  differentiable-programming setup — has not been tested.
+
 
 ## References
 
@@ -199,6 +311,68 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+## Convex Baseline: Formulation and Solver Engineering
+
+**Formulation (`src/convex_baseline.py`, extended in
+`src/convex_baseline_with_integrals.py`).** Representing `C_n²(g)` as a
+B-spline expansion turns the crossing equation — linear in `C_n²` at any
+fixed `g` — into a system still linear in the spline coefficients `θ`,
+now stacked across every training `g` simultaneously
+(`src/stack_crossing.py`). The integral-constraint extension adds two more
+linear rows per constrained coupling in exactly the same system, rather
+than requiring a different formulation. Non-negativity is enforced as a
+hard constraint, `θ ≥ 0`, rather than architecturally as in the PINN — and
+because B-spline basis functions are themselves non-negative and sum to
+one at every point, `θ ≥ 0` guarantees `C_n²(g) ≥ 0` across the *entire*
+continuous curve, not just at the training points.
+
+**Solver selection and numerical conditioning.** `solve_convex_problem`
+(the original Stage 0.5 baseline) calls `cvxpy`'s solver with no explicit
+choice, which auto-selects `OSQP` for this problem class. Every function
+built afterward (`solve_from_cached`, `solve_convex_problem_with_integral_constraints`,
+`solve_from_cached_with_integrals`) explicitly requests `CLARABEL` instead,
+chosen for better-observed conditioning on the badly-scaled objectives the
+integral-constraint sweep produces — `w_int` ranges from `10⁴` to `10⁸`,
+a scale spread that stresses generic QP solvers. Both solvers were
+confirmed to agree on the underlying optimization: at matched inputs, the
+two converge to the same objective value to within `~2×10⁻⁵` relative,
+despite the raw coefficient vectors differing by up to `5×10⁻⁵` in the
+sextet states specifically — the same near-null-space directions flagged
+by the identifiability analysis. Two solvers landing at different points
+of an equally-optimal, nearly-flat region is expected behavior for a
+near-degenerate convex problem, not a sign of error; it is also why the
+project's tests compare achieved objective values rather than raw `θ`
+where an exact-generalization claim is being verified, since the latter is
+sensitive to noise the former is not.
+
+**Caching for fast hyperparameter search.** As with the PINN's physics
+cache, the design matrices, target vectors, and smoothness-penalty
+operator depend only on the training `g`-values and spline settings — never
+on the regularization weights being searched over. `solve_from_cached` and
+`solve_from_cached_with_integrals` isolate the optimization step from this
+expensive setup, so cross-validation, the bounds sweep, and the joint
+`(λ, w_int)` grid search each build the underlying matrices exactly once
+and reuse them across every candidate — the same underlying pattern as
+`pinn_loss.py`'s `build_physics_cache`, applied to the convex side of the
+project.
+
+**Solver status is checked, not assumed.** Every solve function accepts
+`cp.OPTIMAL` or `cp.OPTIMAL_INACCURATE` and rejects anything else with a
+raised error, and the status string is returned alongside the fitted
+coefficients rather than discarded — callers that need to distinguish a
+clean solve from a numerically marginal one can do so, rather than
+silently trusting whatever the solver returned.
+
+**Grid search: coarse-to-fine, not single-pass.** The `(λ, w_int)` search
+for the integral-constraint weight ran in two stages: a coarse,
+log-spaced grid across four orders of magnitude in each parameter,
+followed by a second grid at finer resolution centered on the coarse
+optimum. The refined search converging to the same neighborhood the
+coarse one found (`3.6%` → `3.18%` worst-case deviation) was the check
+that the result was a genuine local optimum rather than an artifact of
+where the first grid happened to sample.
+
 
 ## PINN Architecture and Training
 
