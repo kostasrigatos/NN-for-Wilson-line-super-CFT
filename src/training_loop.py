@@ -13,7 +13,8 @@ from spectrum_data import available_g_values
 def train_and_save(lam: float, g_values: list[float],
                    design_matrix_cache: dict[float, torch.Tensor], target_vector_cache: dict[float, torch.Tensor],
                    n_epochs: int = 30000, seed: int = 42, save: bool = True,
-                   milestones: list[int] = None, gamma: float = 0.5
+                   milestones: list[int] = None, gamma: float = 0.5,
+                   hidden_dim: int = 64, n_hidden_layers: int = 3
                    ) -> tuple[nn.Module, list[float]]:
     r"""
          Trains the WilsonNetwork model for a given number of epochs, using the physics-informed crossing loss optionally
@@ -49,6 +50,12 @@ def train_and_save(lam: float, g_values: list[float],
          gamma: float, default = 0.5
              The multiplicative learning-rate decay factor applied at each milestone.
 
+         hidden_dim: int, default = 64
+             The hidden dimension of the hidden layers.
+
+         n_hidden_layers: int, default = 3
+             The number of hidden layers in the network.
+
          Returns
          -------
          model: nn.Module
@@ -58,7 +65,7 @@ def train_and_save(lam: float, g_values: list[float],
              The list that contains the scalar training loss values recorded at each epoch.
      """
     torch.manual_seed(seed)
-    model = WilsonNetwork().double()
+    model = WilsonNetwork(hidden_dim = hidden_dim, n_hidden_layers = n_hidden_layers).double()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=gamma) if milestones is not None else None
     loss_history = []
