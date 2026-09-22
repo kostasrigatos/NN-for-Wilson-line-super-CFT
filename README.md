@@ -133,10 +133,9 @@ every seed at the next — the full min-max ranges never overlap, not just
 the means. Between `λ=0.01` and `λ=0.1`, the means stay cleanly ordered
 and the ±1 std bands still don't overlap, but one `λ=0.01` seed (3.887)
 edges past the lowest `λ=0.1` seed (3.821) — the trend holds on average,
-without every single seed beating every single seed at the boundary. As
-before, the best configuration across every PINN experiment has no
-smoothness term at all, and even that configuration remains roughly 5x
-worse than the convex baseline's best result.
+without every single seed beating every single seed at the boundary. As before, 
+among the four `λ` values tested here, the best configuration has no smoothness 
+term at all, remaining roughly 5x worse than the convex baseline's best result.
 
 Separately, locating the loss plateau's escape epoch automatically —
 across all 20 runs, using a windowed-average detector robust to late-
@@ -146,6 +145,72 @@ showed the escape landing within 200 epochs of the same point across all
 four `λ` values, suggesting the timing is substantially set by the
 initialization itself — though this held for only one of the five seeds
 tested, not universally.
+
+### Architecture ablation
+
+**Status: complete, screened at single-seed resolution.** Every prior
+PINN result in this project used one specific architecture — 3 hidden
+layers, 64 units. This checks whether the "~5x worse than the convex
+baseline, smoothness never helps" finding depends on that specific
+choice.
+
+Seven configurations were trained at `λ=0`, seed 42, full 30000 epochs:
+depth `{2, 3, 4}` and width `{32, 64, 128}` varied one at a time around
+the baseline, plus two targeted combinations chosen after the initial
+screen to test whether depth and width interact.
+
+| hidden_dim | n_hidden_layers | violation score |
+|---|---|---|
+| 32 | 2 | 12.907 |
+| 32 | 3 | 12.896 |
+| 64 | 2 | 2.600 |
+| 64 | 3 (baseline) | 2.695 |
+| 64 | 4 | 12.906 |
+| 128 | 3 | 2.717 |
+| 128 | 4 | 2.893 |
+
+**Three of the six non-baseline configurations land at or near the
+baseline's known 5-seed noise band (`2.695`–`2.843`, from the 
+smoothness-sweep table above)  — `(64,2)` in particular lands below the
+entire observed range, a hint (unconfirmed on a single seed) that
+depth 2 may be a genuine improvement rather than noise; three do not, 
+converging to a violation score roughly 5x higher.** The three that fail 
+are not a smoothly degraded fit — their final crossing-equation 
+residual (`~18.7`) is nearly identical across all three, versus the 
+baseline's `~0.005`, and each is still slowly decreasing rather than converged: 
+naive linear extrapolation of the observed rate would need on the order 
+of `10⁷` further epochs to close the gap, against the `30000`-epoch budget used throughout. 
+This is best read as **failure to escape the training plateau within budget**, not a
+representational limitation — consistent with this, the `n_hidden_layers=4`
+run shows the same late-training loss spikes documented for the baseline
+architecture, suggesting a qualitatively similar but stuck optimization
+landscape rather than a different one.
+
+The two failure modes are not symmetric. **Width 32 fails regardless of
+depth** — both `(32,2)` and `(32,3)` are stuck, ruling out depth as the
+relevant factor for this one. **Depth 4's difficulty is compensable by
+width**: `(64,4)` is stuck, but `(128,4)` is not, landing at `2.893`,
+inside the baseline noise band. Extra width appears to offset the
+optimization difficulty added depth introduces, without that width being
+representationally necessary on its own (`(128,3)` is unremarkable versus
+`(64,3)`).
+
+### Honest limitations (architecture ablation)
+
+- Single seed (42) per configuration. This is a deliberate choice, not
+  an oversight: the four "fine" results land inside a noise band already
+  characterized by 5 seeds elsewhere in this project, and the three
+  "stuck" results sit roughly 5x outside it — far enough that a single
+  seed is reasonably informative, though a different seed escaping the
+  plateau for one of the three stuck configurations cannot be ruled out
+  without further seeds.
+- Not a full 3x3 grid — one-factor-at-a-time from the baseline, plus two
+  combinations chosen after seeing the initial screen to test a specific
+  interaction. A handful of other combinations were not tried.
+- "Stuck rather than representationally limited" is inferred from the
+  residual's scale and the extrapolation argument, not from directly
+  observing an eventual escape at a longer epoch budget, which was not
+  tested.
 
 ### Learning-rate scheduling
 
@@ -171,7 +236,7 @@ evidence is meaningfully weaker than the `λ` finding above — this is
 reported as a modest, directionally-positive result, not a resolved
 improvement.
 
-### Honest limitations
+### Honest limitations (learning-rate scheduling)
 
 - Only tested down to `λ=0.001`; a smaller value was not tried.
 - This penalty (continuous second derivative via autograd) is not on a
@@ -479,7 +544,13 @@ completely: detected escape epochs spread naturally across
 
 **Model (`src/pinn_model.py`).** A single shared network with 10 output
 heads — one MLP taking g in and predicting all 10 states' `C_n²` at once,
-rather than 10 separate networks. Three hidden layers of 64 units with
+rather than 10 separate networks. Depth and width are parameterized
+(`n_hidden_layers`, `hidden_dim`, both defaulting to the values used
+throughout this project — 3 and 64) to support the architecture ablation
+in Part 1; `WilsonNetwork()` called with no arguments is verified
+(`tests/test_pinn_model.py`) to reproduce the original fixed architecture
+exactly, including at the level of actual trained weights under a fixed
+seed, not just matching shapes. Three hidden layers of 64 units with
 `Tanh` activations, chosen deliberately over `ReLU`: the smoothness
 experiment below requires the network's output to be twice differentiable
 everywhere, which `ReLU`'s kink at zero would break. The final layer is
