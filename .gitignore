@@ -4,3 +4,4 @@ __pycache__/
 .idea/
 data/Conformal_Data.nb
 scratch/
+.DS_Store
