@@ -147,6 +147,30 @@ four `λ` values, suggesting the timing is substantially set by the
 initialization itself — though this held for only one of the five seeds
 tested, not universally.
 
+### Learning-rate scheduling
+
+A `MultiStepLR` schedule (milestones at epochs 21000 and 25000, `gamma=0.5`)
+was tested against the `λ=0` baseline across the same 5 seeds used
+throughout this study, to check whether halving the learning rate after
+the plateau-escape region — where loss spikes of increasing severity
+were observed — improves the final result.
+
+| | violation score (mean ± std) |
+|---|---|
+| no scheduler | 2.763 ± 0.061 |
+| scheduled | 2.717 ± 0.119 |
+
+**Mean violation score improved by 1.7%, but the effect is not a clean
+win.** Seed-variance roughly doubled, and the full ranges overlap
+completely between the two groups — this data alone would not rule out
+"no real effect." The paired, seed-by-seed comparison is more
+informative: 3 of 5 seeds improved, 2 grew slightly worse, and the two
+that worsened were the two highest (worst) baseline seeds. The direction
+and rough magnitude are consistent with the scheduler helping, but the
+evidence is meaningfully weaker than the `λ` finding above — this is
+reported as a modest, directionally-positive result, not a resolved
+improvement.
+
 ### Honest limitations
 
 - Only tested down to `λ=0.001`; a smaller value was not tried.
@@ -497,9 +521,8 @@ below for how that escape point was detected reliably.
 Later in training, loss showed intermittent spikes of increasing severity
 — a signature of the fixed learning rate (`1e-3` throughout, via Adam)
 no longer being well-matched to the sharper local landscape near
-convergence. A learning-rate scheduler was identified as the natural next
-refinement but not implemented, since the resulting comparison (Part 1)
-did not depend on resolving this instability.
+convergence. A MultiStepLR schedule was tried as the natural response; 
+see "Learning-rate scheduling" in Part 1 for the result.
 
 ## Reproducibility
 
@@ -519,6 +542,11 @@ same seeds, but does take the original training time. The resulting
 summary statistics (violation score, final loss, plateau epoch and
 magnitude, for every (λ, seed) pair) are saved to
 `models/summaries_seed_sweep_parallel.csv`.
+
+The learning-rate-schedule comparison's five runs are similarly not
+checkpointed; their summary statistics are saved to
+`models/summary_scheduled_lam0.csv`, and their loss histories to
+`models/loss_histories_scheduled.pkl`.
 
 ## Data provenance
 
