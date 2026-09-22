@@ -705,3 +705,17 @@ To regenerate the CSVs from scratch:
 The two extraction scripts are otherwise self-contained: `resolve_fractions`
 and `extract_numbers` (defined in `extract_conformal_data.py`) are reused
 by `extract_OPE_bounds.py`.
+
+# Appendix
+
+## Seed-Robustness Figure
+
+![PINN violation score across 5 seeds per λ](notebooks/assets/seed_robustness.png)
+
+The individual seed values behind the mean ± std table in "Smoothness-
+regularized loss" (Part 1), shown directly rather than summarized. Each
+blue point is one `(λ, seed)` run's violation score; red markers show
+mean ± std per `λ`. The near-touch between `λ=0.01`'s highest seed and
+`λ=0.1`'s lowest — the one place the full ranges nearly overlap, as
+discussed in the main text — is visible directly here rather than only
+in the reported numbers.
