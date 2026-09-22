@@ -195,6 +195,69 @@ optimization difficulty added depth introduces, without that width being
 representationally necessary on its own (`(128,3)` is unremarkable versus
 `(64,3)`).
 
+### Convex Baseline vs. PINN vs. Bootstrap
+
+**Status: complete.** Both prior methods are now compared directly against
+the bootstrap bound and against each other, across all three tracked
+states plus the degenerate pair's sum — a three-way comparison, not a
+validation of either method individually.
+
+![Convex baseline and PINN vs known bounds, all three states plus sum, full range and weak-coupling zoom](notebooks/assets/four_panel_comparison.png)
+
+**State 1, the non-degenerate operator, is resolved almost exactly by
+both methods** — within `1.3%` of the bound at `g=1.55` for the PINN,
+`0.7%` for the convex baseline. This is the control the other two panels
+need: it confirms the PINN's failure is specific to the degenerate pair,
+not a general property of the network or the training procedure.
+
+**States 2 and 3 tell a sharper version of the story already established
+for the convex baseline.** The PINN doesn't just get the split wrong —
+at `g≈1.5–4` it over-predicts state 2 by roughly `6×` while state 3
+collapses to `0.1–0.5%` of its true value, functionally disappearing
+from the model's output. The convex baseline's own error in the same
+region is bounded by comparison: state 2 at `3.8–4.1×`, state 3 at
+`0.4–0.5×`. Both methods exploit the same structural slack — crossing
+constrains the *sum* far more than the individual split — but the
+convex method's smoothness prior keeps the resulting error within a
+bounded family of curves, while the PINN, with no such constraint at
+`λ=0`, is free to find a more extreme degenerate solution.
+
+**The sum panel shows this is not simply "PINN worse than convex
+uniformly."** The convex baseline's sum tracks the bound closely from
+`g≈1` onward, echoing MultiSTOP's own reported result at weak coupling
+(Cavaglià et al. bounds, their Fig. 1). The PINN's sum does not track
+the bound as closely at any point in the tested range — the property
+that resolves cleanly for the convex method does not resolve nearly as
+well here, a genuine difference in what each method's inductive bias
+buys it, not just a difference in overall accuracy.
+
+**The weak-coupling zoom (bottom row) is the direct counterpart to
+MultiSTOP's Figure 1**, which covers only `g∈[0,1]`; our own range
+extends to `g=4`. By inspection, MultiSTOP's RL result tracks the
+bootstrap bound more closely in this shared window than either of our
+own methods — we have not run a systematic comparison against their
+result, only this visual one, and no equivalent RL result exists at the
+strong coupling this project otherwise targets.
+
+**This comparison uses a single seed (42) for both methods**, consistent
+with every other figure in this project; the PINN's seed-to-seed
+variation was characterized separately (`2.763 ± 0.061` at `λ=0` up to
+`3.961 ± 0.105` at `λ=0.1`, full ranges overlapping only at the
+`λ=0.01`/`λ=0.1` boundary — see Appendix for the seed-robustness figure)
+and is not re-examined here.
+
+### Honest limitations
+
+- Single seed for both methods in this comparison; the seed-robustness
+  study elsewhere in this project used only the smoothness sweep, not
+  this specific state-by-state comparison.
+- The sum panel's bound is the conservative marginal addition
+  `(lower_2+lower_3, upper_2+upper_3)`, not a tightest-possible joint
+  bound.
+- The MultiSTOP comparison is by visual inspection of their published
+  figure, not a reproduction of their underlying data or a matched
+  numerical comparison.
+
 ### Honest limitations (architecture ablation)
 
 - Single seed (42) per configuration. This is a deliberate choice, not
