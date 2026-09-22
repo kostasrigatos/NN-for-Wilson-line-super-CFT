@@ -22,13 +22,16 @@ class WilsonNetwork(nn.Module):
          layer4: nn.Linear
                The output layer of the network projecting from hidden_dim features to 10 outputs.
      """
-    def __init__(self, hidden_dim = 64):
+    def __init__(self, hidden_dim: int = 64, n_hidden_layers: int = 3):
         super().__init__()
 
-        self.layer1 = nn.Linear(1, hidden_dim)
-        self.layer2 = nn.Linear(hidden_dim, hidden_dim)
-        self.layer3 = nn.Linear(hidden_dim, hidden_dim)
-        self.layer4 = nn.Linear(hidden_dim, 10)
+        self.hidden_layers = nn.ModuleList()
+        self.hidden_layers.append(nn.Linear(1, hidden_dim))
+
+        for idx in range(n_hidden_layers - 1):
+            self.hidden_layers.append(nn.Linear(hidden_dim, hidden_dim))
+
+        self.output_layer = nn.Linear(hidden_dim, 10)
 
     def forward(self, g: torch.Tensor) -> torch.Tensor:
         r"""
@@ -45,11 +48,11 @@ class WilsonNetwork(nn.Module):
                A tensor of shape (batch_size, 10) that contains the output of the neural network; the non-negative predicted
                values across the 10 elements.
          """
-        x = torch.tanh(self.layer1(g))
-        x = torch.tanh(self.layer2(x))
-        x = torch.tanh(self.layer3(x))
+        x = g
+        for layer in self.hidden_layers:
+            x = torch.tanh(layer(x))
 
-        out = F.softplus(self.layer4(x))
+        out = F.softplus(self.output_layer(x))
 
         return out
 
